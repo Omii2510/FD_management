@@ -8,6 +8,12 @@ const advertisementSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     bannerImageUrl: { type: String, required: true },
     destinationUrl: { type: String, required: true },
+    proposedBudget: { type: mongoose.Schema.Types.Decimal128, min: 0 },
+    campaignObjective: {
+      type: String,
+      enum: ['brand_awareness', 'plan_enquiries', 'website_traffic', 'other'],
+    },
+    objectiveDetails: { type: String, trim: true, maxlength: 2000 },
     placement: {
       type: String,
       enum: ['homepage_banner', 'featured_fd', 'sponsored_search', 'sidebar'],

@@ -12,6 +12,7 @@ const bankSchema = new mongoose.Schema(
     logoUrl: { type: String },
     description: { type: String, trim: true, maxlength: 3000 },
     officialWebsite: { type: String, trim: true },
+    contactEmail: { type: String, lowercase: true, trim: true },
     customerCare: { type: String, trim: true },
     headquarters: { type: String, trim: true },
     verificationStatus: {

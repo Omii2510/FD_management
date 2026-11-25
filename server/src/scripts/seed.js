@@ -18,17 +18,31 @@ import {
 const seed = async () => {
   await connectDB();
 
-  const admin = await User.findOneAndUpdate(
-    { email: 'fictional.admin@fdconnect.test' },
-    {
-      fullName: 'Fictional Admin',
-      authProvider: 'local',
-      role: 'admin',
-      isActive: true,
-      emailVerifiedAt: new Date(),
-    },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminName = process.env.ADMIN_NAME?.trim() || 'FD Connect Administrator';
+  const admins = await User.find({ role: 'admin' }).select('+passwordHash');
+  if (admins.length > 1) throw new Error('More than one admin exists; resolve duplicate admin accounts before seeding.');
+
+  let admin = admins[0];
+  const credentialsProvided = Boolean(adminEmail || adminPassword);
+  if (!admin || credentialsProvided || !admin.passwordHash) {
+    if (!adminEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail) || !adminPassword || adminPassword.length < 8 || adminPassword.length > 72) {
+      throw new Error('Set ADMIN_EMAIL and an 8–72 character ADMIN_PASSWORD before creating the first admin.');
+    }
+    const conflictingUser = await User.findOne({ email: adminEmail, ...(admin ? { _id: { $ne: admin._id } } : {}) });
+    if (conflictingUser) {
+      throw new Error('ADMIN_EMAIL already belongs to a non-admin account.');
+    }
+    if (!admin) admin = new User({ role: 'admin' });
+    admin.fullName = adminName;
+    admin.email = adminEmail;
+    admin.passwordHash = adminPassword;
+    admin.authProvider = 'local';
+    admin.isActive = true;
+    admin.emailVerifiedAt = new Date();
+    await admin.save();
+  }
 
   const bank = await Bank.findOneAndUpdate(
     { bankCode: 'FDTEST01' },
@@ -119,6 +133,9 @@ const seed = async () => {
         acceptedAt: new Date(),
         noticeVersion: 'v1',
       },
+      applicantName: 'Fictional FD User',
+      applicantPhone: '+910000000000',
+      aadhaarLast4: '0000',
       status: 'initiated',
       officialBankRedirectUrl: 'https://example.com/apply',
     },
